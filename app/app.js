@@ -20,7 +20,7 @@ var nginx = env.NGINX_CMD || "nginx";
 var nginxStarted = false;
 
 console.log("Loading default template...");
-var templateVhost = fs.readFileSync("nginx-default-vhost.conf");
+var templateVhost = fs.readFileSync("/etc/nginx/conf.d/nginx-default-vhost.conf.tmpl");
 
 var main = function() {
   console.log("Initiating connection: "+url);

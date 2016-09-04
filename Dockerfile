@@ -15,9 +15,11 @@ RUN apt-get update \
 # Configure Nginx and apply fix for very long server names
 RUN sed -i 's/^http {/&\n    server_names_hash_bucket_size 128;/g' /etc/nginx/nginx.conf
 
-COPY . /app/
+COPY app /app/
+COPY confd /etc/nginx/conf.d
 WORKDIR /app/
 
+# Remove original log files
 RUN mkdir /etc/nginx/logs && rm -f /var/log/nginx/*
 RUN chmod u+x /app/docker-entrypoint.sh /app/app.js
 
