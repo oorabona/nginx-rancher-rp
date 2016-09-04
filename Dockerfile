@@ -18,11 +18,12 @@ RUN sed -i 's/^http {/&\n    server_names_hash_bucket_size 128;/g' /etc/nginx/ng
 COPY . /app/
 WORKDIR /app/
 
-RUN mkdir /etc/nginx/logs
+RUN mkdir /etc/nginx/logs && rm -f /var/log/nginx/*
 RUN chmod u+x /app/docker-entrypoint.sh /app/app.js
 
-ENV RANCHER_METADATA_HOST http://rancher-metadata
+ENV RANCHER_METADATA_HOST http://rancher-metadata:8080
 ENV RANCHER_VERSION v1
+ENV NGINX_CMD nginx
 
 VOLUME ["/etc/nginx/certs", "/etc/nginx/conf.d"]
 

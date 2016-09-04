@@ -1,10 +1,13 @@
 #!/bin/env nodejs
 var fs = require("fs");
-var request = require("request");
 var util = require("util");
+
 var Q = require("q");
-var later = require("later");
+require('any-promise/register/q')
 var exec = require('promised-exec');
+var request = require("request-promise-any");
+
+var later = require("later");
 
 var readFile = Q.nfbind(fs.readFile);
 var writeFile = Q.nfbind(fs.writeFile);
@@ -12,29 +15,23 @@ var writeFile = Q.nfbind(fs.writeFile);
 // Retrieve environment variables
 var env = process.env;
 var url = env.RANCHER_METADATA_HOST + "/" + env.RANCHER_VERSION + "/containers";
-var nginx = env.NGINX || "nginx";
+var nginx = env.NGINX_CMD || "nginx";
 
 var nginxStarted = false;
 
 console.log("Loading default template...");
 var templateVhost = fs.readFileSync("nginx-default-vhost.conf");
 
-var api = function(url) {
-  console.log("get "+url);
+var main = function() {
+  console.log("Initiating connection: "+url);
   var opts = {
     uri: url,
-    method: "GET"
+    method: "GET",
+    json: true
   };
-  return Q.nfcall(request, opts).spread(function(res,body) {
-    console.log("Got status response: " + res.statusCode);
-    console.log("Parsing results... ");
-    return JSON.parse(body);
-  });
-}
-
-var main = function() {
-  api(url)
+  request(opts)
   .then(function(containers) {
+    //console.log("containers:"+util.inspect(containers, {depth: null}));
     var data = containers.data;
     var currentVhostFile = "";
     data.forEach(function(el,idx) {
