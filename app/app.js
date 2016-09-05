@@ -16,11 +16,12 @@ var writeFile = Q.nfbind(fs.writeFile);
 var env = process.env;
 var url = env.RANCHER_METADATA_HOST + "/" + env.RANCHER_VERSION + "/containers";
 var nginx = env.NGINX_CMD || "nginx";
+var getIpFromField = env.IP_FIELD || "dockerIp";
 
 var nginxStarted = false;
 
 console.log("Loading default template...");
-var templateVhost = fs.readFileSync("/etc/nginx/conf.d/nginx-default-vhost.conf.tmpl");
+var templateVhost = fs.readFileSync("/etc/nginx/vhosts.d/nginx-default-vhost.conf");
 
 var main = function() {
   console.log("Initiating connection: "+url);
@@ -31,18 +32,20 @@ var main = function() {
   };
   request(opts)
   .then(function(containers) {
-    //console.log("containers:"+util.inspect(containers, {depth: null}));
     var data = containers.data;
     var currentVhostFile = "";
-    data.forEach(function(el,idx) {
-      var env = el.environment;
-      var containerName = el.name;
-      var remoteAddress = el.data.fields.dockerIp;
-      console.log("Container "+idx+" environment: "+JSON.stringify(env));
-      if(env && env.VIRTUAL_HOST) {
-        var virtualPort = env.VIRTUAL_PORT || 80;
-        currentVhostFile += "upstream "+env.VIRTUAL_HOST+" {\n\tserver "+remoteAddress+":"+virtualPort+";\n}\n";
-        console.log("Adding "+containerName+" ("+remoteAddress+") vhost to Nginx...");
+    data.forEach(function(container,idx) {
+      var containerName = container.name;
+      var containerEnv = container.environment;
+
+      if(containerEnv && containerEnv.VIRTUAL_HOST) {
+        var remoteAddress = container.data.fields[getIpFromField];
+        var virtualPort = containerEnv.VIRTUAL_PORT || 80;
+
+        currentVhostFile += "upstream "+containerEnv.VIRTUAL_HOST+" {\n\tserver "+remoteAddress+":"+virtualPort+";\n}\n";
+        console.log("Adding "+containerName+" ("+remoteAddress+":"+virtualPort+") vhost to Nginx...");
+      } else {
+        console.log("Skipped container "+containerName+": no VIRTUAL_HOST environment variable set.");
       }
     });
     return currentVhostFile;

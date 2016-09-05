@@ -16,18 +16,19 @@ RUN apt-get update \
 RUN sed -i 's/^http {/&\n    server_names_hash_bucket_size 128;/g' /etc/nginx/nginx.conf
 
 COPY app /app/
-COPY confd /etc/nginx/conf.d
+COPY confd /etc/nginx/vhosts.d
 WORKDIR /app/
 
-# Remove original log files
-RUN mkdir /etc/nginx/logs && rm -f /var/log/nginx/*
+RUN mkdir /etc/nginx/logs
 RUN chmod u+x /app/docker-entrypoint.sh /app/app.js
 
 ENV RANCHER_METADATA_HOST http://rancher-metadata:8080
 ENV RANCHER_VERSION v1
 ENV NGINX_CMD nginx
+ENV IP_FIELD dockerIp
 
 VOLUME ["/etc/nginx/certs", "/etc/nginx/conf.d"]
+VOLUME ["/etc/nginx/vhosts.d"]
 
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
 
