@@ -32,22 +32,54 @@ var main = function() {
   };
   request(opts)
   .then(function(containers) {
-    var data = containers.data;
-    var currentVhostFile = "";
-    data.forEach(function(container,idx) {
+    var cache = {};
+    containers.data.forEach(function(container,idx) {
       var containerName = container.name;
       var containerEnv = container.environment;
 
       if(containerEnv && containerEnv.VIRTUAL_HOST) {
         var remoteAddress = container.data.fields[getIpFromField];
         var virtualPort = containerEnv.VIRTUAL_PORT || 80;
-
-        currentVhostFile += "upstream "+containerEnv.VIRTUAL_HOST+" {\n\tserver "+remoteAddress+":"+virtualPort+";\n}\n";
-        console.log("Adding "+containerName+" ("+remoteAddress+":"+virtualPort+") vhost to Nginx...");
+        var fullRemote = remoteAddress+":"+virtualPort;
+        if(cache[containerEnv.VIRTUAL_HOST]) {
+          if(cache[containerEnv.VIRTUAL_HOST].indexOf(fullRemote) == -1) {
+            cache[containerEnv.VIRTUAL_HOST].push(fullRemote);
+          }
+        } else {
+          cache[containerEnv.VIRTUAL_HOST] = [fullRemote];
+        }
+        console.log("Adding "+containerName+" ("+fullRemote+") vhost to Nginx...");
       } else {
         console.log("Skipped container "+containerName+": no VIRTUAL_HOST environment variable set.");
       }
     });
+    return cache;
+  })
+  .then(function(cache) {
+    try {
+      if(fs.statSync("cache.json").isFile()) {
+        return readFile("cache.json").then(function(data) {
+          return [cache, JSON.parse(data)];
+        });
+      }
+    } catch(e) {
+      return [cache, {}];
+    }
+  })
+  .spread(function(cache, cacheFile) {
+
+    var currentVhostFile = "";
+    for(var host in cache) {
+      var fullRemotes = cache[host];
+      if(fullRemotes) {
+        currentVhostFile += "upstream "+host+" {\n";
+        fullRemotes.forEach(function(remote) {
+          currentVhostFile += "\tserver "+fullRemote+";\n";
+        });
+        currentVhostFile += "}\n";
+      }
+    }
+
     return currentVhostFile;
   })
   .then(function(upstream) {
