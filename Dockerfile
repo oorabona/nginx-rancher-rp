@@ -9,8 +9,11 @@ RUN apt-get update \
     curl \
     build-essential \
     nodejs \
+    npm \
  && apt-get clean \
  && rm -r /var/lib/apt/lists/*
+
+RUN npm i later deep-equal q winston promised-exec request-promise-any
 
 ENV RANCHER_METADATA_HOST http://rancher:8080
 ENV RANCHER_VERSION v1
