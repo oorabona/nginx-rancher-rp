@@ -159,8 +159,8 @@ var main = function() {
   // FIXME: We do not care about return results of writeFile promises.
   .spread(function(streamCache, streamServer, streamCacheFile) {
     // Do the same for stream cache file...
+    var streamVhostFile = "";
     if(!equal(streamCache, streamCacheFile)) {
-      var streamVhostFile = "";
       for(var host in streamServer) {
         streamVhostFile += "server {\n";
         var serverListenConfigs = streamServer[host];
