@@ -158,17 +158,15 @@ var main = function() {
   })
   // FIXME: We do not care about return results of writeFile promises.
   .spread(function(streamCache, streamServer, streamCacheFile) {
-    // Do the same for stream cache file...
+    // Force refresh
     var streamVhostFile = "";
-    if(!equal(streamCache, streamCacheFile)) {
-      for(var host in streamServer) {
-        streamVhostFile += "server {\n";
-        var serverListenConfigs = streamServer[host];
-        serverListenConfigs.forEach(function(listenConfig) {
-          streamVhostFile += "\t"+listenConfig+"\n";
-        });
-        streamVhostFile += "\tproxy_pass "+host+";\n}\n";
-      }
+    for(var host in streamServer) {
+      streamVhostFile += "server {\n";
+      var serverListenConfigs = streamServer[host];
+      serverListenConfigs.forEach(function(listenConfig) {
+        streamVhostFile += "\t"+listenConfig+"\n";
+      });
+      streamVhostFile += "\tproxy_pass "+host+";\n}\n";
     }
     for(var host in streamCache) {
       var fullRemotes = streamCache[host];
