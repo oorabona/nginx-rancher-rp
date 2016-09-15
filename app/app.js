@@ -6,12 +6,23 @@ var Q = require("q");
 require('any-promise/register/q')
 var exec = require('promised-exec');
 var request = require("request-promise-any");
-
+var winston = require("winston");
 var later = require("later");
 var equal = require("deep-equal");
 
 var readFile = Q.nfbind(fs.readFile);
 var writeFile = Q.nfbind(fs.writeFile);
+
+// Configure Winston output logging to be JSON aware.
+var logger = new winston.Logger({
+  transports: [
+    new winston.transports.Console({
+      handleExceptions: true,
+      json: true
+    })
+  ],
+  exitOnError: false
+});
 
 // Retrieve environment variables and use defaults if not set
 var env = process.env;
@@ -27,7 +38,7 @@ var reContainerPorts = new RegExp("([0-9]+)\:([0-9]+)\/(tcp|udp)");
 
 // We load the template only once when container starts.
 // That forces whoever alter the default template to make sure it works by restarting the container.
-console.log("Loading default template...");
+logger.log("info", "Loading default template...");
 var templateVhost = fs.readFileSync("/etc/nginx/vhosts.d/nginx-default-vhost.conf");
 
 // Add to main host cache the internal Rancher address and port
@@ -70,7 +81,7 @@ var parseContainerData = function(containers) {
 
     // Process only running containers
     if(containerState !== "running") {
-      console.log("Skipping container "+containerName+": state is "+containerState);
+      logger.log("info", "Skipping container "+containerName+": state is "+containerState);
     } else if(containerEnv && containerEnv.VIRTUAL_HOST) {
       var remoteAddress = container.data.fields[getIpFromField];
       var virtualPort = containerEnv.VIRTUAL_PORT;
@@ -91,16 +102,16 @@ var parseContainerData = function(containers) {
               streamServer[containerEnv.VIRTUAL_HOST] = [serverListenConfig];
             }
             var fullRemote = addToCache(streamCache, containerEnv.VIRTUAL_HOST, remoteAddress, privatePort);
-            console.log("Adding "+containerName+" ("+fullRemote+" over "+protoPort+") to Nginx...");
+            logger.log("info", "Adding "+containerName+" ("+fullRemote+" over "+protoPort+") to Nginx...");
           }
         });
       } else {
         // Otherwise we add the container as a HTTP vhost
         var fullRemote = addToCache(httpCache, containerEnv.VIRTUAL_HOST, remoteAddress, virtualPort);
-        console.log("Adding "+containerName+" ("+fullRemote+") vhost to Nginx...");
+        logger.log("info", "Adding "+containerName+" ("+fullRemote+") vhost to Nginx...");
       }
     } else {
-      console.log("Skipped container "+containerName+": no VIRTUAL_HOST environment variable set.");
+      logger.log("info", "Skipped container "+containerName+": no VIRTUAL_HOST environment variable set.");
     }
   });
   // Return fresh data
@@ -110,7 +121,7 @@ var parseContainerData = function(containers) {
 // === Main loop ===
 // Retrieves data from Rancher REST API, parses results and builds configuration files for NGINX
 var main = function() {
-  console.log("Initiating connection to "+url);
+  logger.log("info", "Initiating connection to "+url);
   var opts = {
     uri: url,
     method: "GET",
@@ -185,25 +196,25 @@ var main = function() {
     // If already started, ask it to reload configuration
     var nginxCmd = nginx;
     if(nginxStarted) {
-      console.log("Reloading nginx configuration...");
+      logger.log("info", "Reloading nginx configuration...");
       nginxCmd = nginx + " -s reload";
     } else {
-      console.log("Starting nginx...");
+      logger.log("info", "Starting nginx...");
     }
     return exec(nginxCmd);
   })
   .then(function(response) {
-    console.log("NGINX RETURNED:\n"+response);
+    logger.log("info", "NGINX RETURNED:\n"+response);
     nginxStarted = true;
   })
   .catch(function(e) {
-    console.log("Got error : " + util.inspect(e));
+    logger.log("error", "Got error : " + util.inspect(e));
   });
 }
 
 // Program starts here, croning happens every 30 seconds by default.
 var cron = env.CRON || "every 30 sec"
-console.log("Scheduling: "+cron);
+logger.log("info", "Scheduling: "+cron);
 var s = later.parse.text(cron);
 
 // Run main loop !
