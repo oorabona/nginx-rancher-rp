@@ -169,22 +169,21 @@ var main = function() {
         });
         streamVhostFile += "\tproxy_pass "+host+";\n}\n";
       }
-      for(var host in streamCache) {
-        var fullRemotes = streamCache[host];
-        if(fullRemotes) {
-          streamVhostFile += "upstream "+host+" {\n";
-          fullRemotes.forEach(function(remote) {
-            streamVhostFile += "\tserver "+remote+";\n";
-          });
-          streamVhostFile += "}\n";
-        }
+    }
+    for(var host in streamCache) {
+      var fullRemotes = streamCache[host];
+      if(fullRemotes) {
+        streamVhostFile += "upstream "+host+" {\n";
+        fullRemotes.forEach(function(remote) {
+          streamVhostFile += "\tserver "+remote+";\n";
+        });
+        streamVhostFile += "}\n";
       }
     }
 
     // But to avoid any serialization of "undefined" if it is indeed undefined
     // we initialize with an empty string.
     if(!streamCache) streamCache = "";
-    if(!streamVhostFile) streamVhostFile = "";
 
     // Stream configuration and cache will always be created to avoid specific
     // configuration in NGinX and its stream { } clause.
