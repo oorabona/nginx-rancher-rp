@@ -96,12 +96,12 @@ var parseContainerData = function(containers) {
             var serverListenConfig = "listen " + privatePort;
             if(protoPort === "udp") serverListenConfig += " udp";
             serverListenConfig += ";";
-            if(streamServer[containerEnv.VIRTUAL_HOST+"_"+protoPort]) {
-              streamServer[containerEnv.VIRTUAL_HOST+"_"+protoPort].push(serverListenConfig);
+            if(streamServer[containerEnv.VIRTUAL_HOST+"_"+privatePort]) {
+              streamServer[containerEnv.VIRTUAL_HOST+"_"+privatePort].push(serverListenConfig);
             } else {
-              streamServer[containerEnv.VIRTUAL_HOST+"_"+protoPort] = [serverListenConfig];
+              streamServer[containerEnv.VIRTUAL_HOST+"_"+privatePort] = [serverListenConfig];
             }
-            var fullRemote = addToCache(streamCache, containerEnv.VIRTUAL_HOST, remoteAddress, privatePort);
+            var fullRemote = addToCache(streamCache, containerEnv.VIRTUAL_HOST+"_"+privatePort, remoteAddress, privatePort);
             logger.log("info", "Adding "+containerName+" ("+fullRemote+" over "+protoPort+") to Nginx...");
           }
         });
