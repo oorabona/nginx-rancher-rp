@@ -97,7 +97,9 @@ var parseContainerData = function(containers) {
             if(protoPort === "udp") serverListenConfig += " udp";
             serverListenConfig += ";";
             if(streamServer[containerEnv.VIRTUAL_HOST+"_"+privatePort]) {
-              streamServer[containerEnv.VIRTUAL_HOST+"_"+privatePort].push(serverListenConfig);
+              if(streamServer[containerEnv.VIRTUAL_HOST+"_"+privatePort].indexOf(serverListenConfig) === -1) {
+                streamServer[containerEnv.VIRTUAL_HOST+"_"+privatePort].push(serverListenConfig);
+              }
             } else {
               streamServer[containerEnv.VIRTUAL_HOST+"_"+privatePort] = [serverListenConfig];
             }
